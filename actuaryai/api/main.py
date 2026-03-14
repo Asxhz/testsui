@@ -25,6 +25,7 @@ app.add_middleware(
         "http://localhost:3000",  # Next.js dev server
         "http://127.0.0.1:3000",
         "http://localhost:8000",  # For testing
+        "http://localhost:3001",  # Alternate frontend port
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -36,6 +37,9 @@ app.add_middleware(
 app.include_router(hedge.router, prefix="/api/hedge", tags=["hedge"])
 app.include_router(markets.router, prefix="/api/markets", tags=["markets"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
+
+from actuaryos.api.routes import router as os_router
+app.include_router(os_router, tags=["actuaryos"])
 
 
 @app.on_event("startup")

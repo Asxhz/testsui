@@ -62,6 +62,84 @@ function BundleMetricsCard({ bundle, index, onClick }: { bundle: BundleMetrics; 
                     />
                 </div>
             </div>
+
+            {/* On-Chain Actions */}
+            <div className="border-t border-zinc-800 mt-3 pt-3 space-y-2">
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        Hedge Ready
+                    </span>
+                </div>
+                <div className="flex gap-2 mt-2">
+                    <button
+                        onClick={async (e) => {
+                            e.stopPropagation();
+                            const btn = e.currentTarget;
+                            btn.disabled = true;
+                            btn.textContent = 'Locking...';
+                            try {
+                                const res = await fetch('http://localhost:8000/api/os/xrpl/send', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        destination: '',
+                                        amount: 0.001,
+                                        currency: 'XRP',
+                                        memo: `hedge-lock:${bundle.theme_name}:risk=${riskScore.toFixed(0)}:payout=${totalMaxPayout.toFixed(0)}`
+                                    })
+                                });
+                                const data = await res.json();
+                                if (data.tx_hash) {
+                                    btn.textContent = '✓ Locked';
+                                    btn.className = btn.className.replace('border-emerald-500/20', 'border-emerald-400').replace('text-emerald-500', 'text-emerald-400');
+                                    window.open(data.explorer_url, '_blank');
+                                } else {
+                                    btn.textContent = 'Failed';
+                                    setTimeout(() => { btn.textContent = 'Lock on XRPL'; btn.disabled = false; }, 2000);
+                                }
+                            } catch {
+                                btn.textContent = 'Error';
+                                setTimeout(() => { btn.textContent = 'Lock on XRPL'; btn.disabled = false; }, 2000);
+                            }
+                        }}
+                        className="text-[10px] font-mono text-emerald-500 hover:text-emerald-400 border border-emerald-500/20 hover:border-emerald-500/40 px-2 py-1 rounded transition-colors disabled:opacity-50"
+                    >
+                        Lock on XRPL
+                    </button>
+                    <button
+                        onClick={async (e) => {
+                            e.stopPropagation();
+                            const btn = e.currentTarget;
+                            btn.disabled = true;
+                            btn.textContent = 'Recording...';
+                            try {
+                                const res = await fetch('http://localhost:8000/api/os/solana/record', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        event_type: 'strategy_anchored',
+                                        data: { theme: bundle.theme_name, risk: riskScore, payout: totalMaxPayout }
+                                    })
+                                });
+                                const data = await res.json();
+                                if (data.signature) {
+                                    btn.textContent = '✓ Anchored';
+                                    window.open(data.explorer_url, '_blank');
+                                } else {
+                                    btn.textContent = 'Unavailable';
+                                    setTimeout(() => { btn.textContent = 'Anchor on Solana'; btn.disabled = false; }, 2000);
+                                }
+                            } catch {
+                                btn.textContent = 'Error';
+                                setTimeout(() => { btn.textContent = 'Anchor on Solana'; btn.disabled = false; }, 2000);
+                            }
+                        }}
+                        className="text-[10px] font-mono text-purple-400 hover:text-purple-300 border border-purple-500/20 hover:border-purple-500/40 px-2 py-1 rounded transition-colors disabled:opacity-50"
+                    >
+                        Anchor on Solana
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }

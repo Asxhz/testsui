@@ -137,7 +137,7 @@ export function ChatInterface() {
             {isLoading ? (
               <>
                 <div className="animate-spin h-4 w-4 border-2 border-zinc-950 border-t-transparent rounded-full" />
-                <span className="font-mono text-sm">Processing...</span>
+                <span className="font-mono text-sm">Analyzing...</span>
               </>
             ) : (
               <>
@@ -151,6 +151,10 @@ export function ChatInterface() {
         {/* Progress */}
         {isLoading && progress.length > 0 && (
           <div className="mt-5 border-t border-zinc-800 pt-5">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="h-3 w-3 rounded-full border border-emerald-500 border-t-transparent animate-spin" />
+              <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider">Processing Pipeline</span>
+            </div>
             <ProgressTracker steps={progress} />
           </div>
         )}
