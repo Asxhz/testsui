@@ -28,7 +28,7 @@ class HedgeService:
         logger.info("HedgeService initialized")
 
     def generate_hedge(
-        self, concern: str, budget: float, num_markets: int
+        self, concern: str, budget: float, num_markets: int, max_per_bundle: int = 10
     ) -> HedgeResponse:
         """Generate hedge recommendations (synchronous)."""
         start_time = time.time()
@@ -65,6 +65,7 @@ class HedgeService:
 
         # Step 4: Generate bundles
         logger.info("Step 4: Generating themed bundles")
+        self.bundle_generator.max_markets = max_per_bundle
         bundles = self.bundle_generator.generate_etf_bundles(
             markets=filtered_markets,
             user_concern=concern,
@@ -90,7 +91,7 @@ class HedgeService:
         )
 
     async def generate_hedge_stream(
-        self, concern: str, budget: float, num_markets: int
+        self, concern: str, budget: float, num_markets: int, max_per_bundle: int = 10
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """Generate hedge recommendations with streaming progress updates."""
         start_time = time.time()
@@ -153,6 +154,7 @@ class HedgeService:
                 "data": {"step": "bundles", "message": "Generating themed portfolios..."},
             }
 
+            self.bundle_generator.max_markets = max_per_bundle
             bundles = self.bundle_generator.generate_etf_bundles(
                 markets=filtered_markets,
                 user_concern=concern,

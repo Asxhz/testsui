@@ -29,6 +29,8 @@ export default function ResultsPage() {
     const [rerunProgress, setRerunProgress] = useState<string[]>([]);
     const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
     const [chatInput, setChatInput] = useState('');
+    const [chatMessages, setChatMessages] = useState<Array<{role: string, content: string}>>([]);
+    const [askLoading, setAskLoading] = useState(false);
     const statsRef = useRef<HTMLDivElement>(null);
 
     // Existing handlers (keep all)
@@ -319,11 +321,56 @@ export default function ResultsPage() {
                                 </button>
                             ))}
                         </div>
+                        {chatMessages.length > 0 && (
+                            <div className="mb-3 max-h-48 overflow-y-auto space-y-2">
+                                {chatMessages.map((msg, i) => (
+                                    <div key={i} className={`p-2.5 rounded text-xs font-mono ${msg.role === 'user' ? 'bg-zinc-800 text-zinc-300 ml-8' : 'bg-emerald-500/10 text-emerald-300 mr-8 border border-emerald-500/20'}`}>
+                                        {msg.content}
+                                    </div>
+                                ))}
+                                {askLoading && (
+                                    <div className="bg-emerald-500/10 text-emerald-400 p-2.5 rounded text-xs font-mono mr-8 border border-emerald-500/20 animate-pulse">
+                                        Thinking...
+                                    </div>
+                                )}
+                            </div>
+                        )}
                         <div className="flex gap-2">
                             <input value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Ask anything about your hedge strategy..."
                                 className="flex-1 px-3 py-2 bg-zinc-950 border border-zinc-800 rounded text-xs font-mono text-zinc-200 placeholder-zinc-700" />
-                            <button className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-zinc-950 text-xs font-mono font-semibold rounded transition-colors">
-                                Ask
+                            <button
+                                onClick={async () => {
+                                    if (!chatInput.trim()) return;
+                                    const q = chatInput;
+                                    setChatInput('');
+                                    setChatMessages(prev => [...prev, { role: 'user', content: q }]);
+                                    setAskLoading(true);
+                                    try {
+                                        const bundlesSummary = currentBundles.map((b: any, i: number) => {
+                                            const theme = b.coverage_summary?.split(':')[0] || `Strategy ${i+1}`;
+                                            const bets = b.bets.slice(0, 5).map((bet: any) =>
+                                                `  - ${bet.market.market.question} (${bet.outcome} @ ${(bet.current_price*100).toFixed(0)}%, $${bet.allocation.toFixed(0)})`
+                                            ).join('\n');
+                                            return `${theme}:\n${bets}`;
+                                        }).join('\n\n');
+
+                                        const res = await fetch('http://localhost:8000/api/hedge/followup', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ question: q, concern, bundles_summary: bundlesSummary })
+                                        });
+                                        const data = await res.json();
+                                        setChatMessages(prev => [...prev, { role: 'assistant', content: data.answer || 'No response' }]);
+                                    } catch (e) {
+                                        setChatMessages(prev => [...prev, { role: 'assistant', content: 'Failed to get response' }]);
+                                    } finally {
+                                        setAskLoading(false);
+                                    }
+                                }}
+                                disabled={askLoading || !chatInput.trim()}
+                                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-zinc-950 text-xs font-mono font-semibold rounded transition-colors"
+                            >
+                                {askLoading ? '...' : 'Ask'}
                             </button>
                         </div>
                     </div>

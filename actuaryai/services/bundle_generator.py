@@ -279,13 +279,16 @@ USER'S CONCERN:
 
 TASK:
 Group these markets into 3-5 coherent themes/categories that make sense as separate hedge portfolios.
-Each theme should contain 6-8 markets (or as many valid ones as possible) to maximize diversification and coverage.
+Each theme should contain {self.max_markets} markets (or fewer if not enough qualify) to maximize diversification and coverage.
 Focus on DIVERSIFICATION - including more markets reduces overall risk.
 Each theme should represent a distinct hedging strategy or risk angle.
 Consider the recent web context to create relevant, timely themes.
 
-For each market in a theme, assign a correlation_score (0.0-1.0) indicating how strongly 
+For each market in a theme, assign a UNIQUE correlation_score (0.0-1.0) indicating how strongly
 that market correlates with the user's concern. Higher scores = stronger hedge value.
+IMPORTANT: Do NOT give all markets the same score. Differentiate them - the most relevant market
+should score 0.85-0.95, moderately relevant 0.5-0.7, and weaker hedges 0.2-0.4.
+This creates weighted allocation where better hedges get more capital.
 
 Return JSON:
 {{

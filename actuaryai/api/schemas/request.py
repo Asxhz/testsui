@@ -13,6 +13,9 @@ class HedgeRequest(BaseModel):
     num_markets: int = Field(
         default=500, ge=10, le=1000, description="Number of markets to search"
     )
+    max_per_bundle: int = Field(
+        default=10, ge=3, le=25, description="Maximum number of positions per strategy bundle"
+    )
 
 
 class MarketSearchRequest(BaseModel):
