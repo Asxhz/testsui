@@ -10,11 +10,17 @@ export default function Home() {
     const cardRef = useRef<HTMLDivElement>(null);
     const [showAdvisor, setShowAdvisor] = useState(false);
     const showAdvisorRef = useRef(false);
+    const [systemStatus, setSystemStatus] = useState<any>(null);
 
     // Keep ref in sync
     useEffect(() => {
         showAdvisorRef.current = showAdvisor;
     }, [showAdvisor]);
+
+    useEffect(() => {
+        fetch('http://localhost:8000/api/os/status').then(r => r.json()).then(setSystemStatus).catch(() => {});
+        fetch('http://localhost:8000/health').then(r => r.json()).catch(() => {});
+    }, []);
 
     // GSAP hero animation
     useEffect(() => {
@@ -113,6 +119,18 @@ export default function Home() {
                                 <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider mt-1">Anchoring</p>
                             </div>
                         </div>
+
+                        {/* System Status */}
+                        {systemStatus && (
+                            <div className="flex items-center gap-4 mb-8 px-4 py-2 bg-zinc-900/50 border border-zinc-800 rounded-lg">
+                                {Object.entries(systemStatus).map(([key, val]) => (
+                                    <div key={key} className="flex items-center gap-1.5">
+                                        <div className={`h-1.5 w-1.5 rounded-full ${val === 'available' ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
+                                        <span className="text-[9px] font-mono text-zinc-500 uppercase">{key}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
 
                         <button
                             onClick={launchAdvisor}
