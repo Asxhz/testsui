@@ -8,8 +8,8 @@ class Settings(BaseSettings):
     """Application settings loaded from environment."""
 
     anthropic_api_key: str
-    cerebras_api_key: str
-    browser_use_api_key: str
+    cerebras_api_key: Optional[str] = None
+    browser_use_api_key: Optional[str] = None
     token_company_api_key: Optional[str] = None  # Optional compression service
 
     # Gamma API settings
