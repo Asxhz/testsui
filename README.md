@@ -39,3 +39,4 @@ CEREBRAS_API_KEY=csk-...
 3. AI filters and ranks markets by hedge value
 4. Markets are grouped into themed portfolios with budget allocation
 5. Interactive strategy cards with risk scores and payout projections
+# actuaryai
