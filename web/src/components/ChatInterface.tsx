@@ -8,6 +8,7 @@ import { ProgressTracker } from './ProgressTracker';
 export function ChatInterface() {
   const [concern, setConcern] = useState('');
   const [budget, setBudget] = useState(100);
+  const [maxPositions, setMaxPositions] = useState(8);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState<string[]>([]);
   const [contextUrls, setContextUrls] = useState<string[]>([]);
@@ -18,31 +19,35 @@ export function ChatInterface() {
     try {
       const saved = localStorage.getItem('actuaryai_recent');
       if (saved) setRecentAnalyses(JSON.parse(saved));
+      const savedBudget = localStorage.getItem('actuaryai_budget');
+      if (savedBudget) setBudget(Number(savedBudget));
+      const savedPositions = localStorage.getItem('actuaryai_positions');
+      if (savedPositions) setMaxPositions(Number(savedPositions));
     } catch {}
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!concern.trim()) return;
 
     setIsLoading(true);
     setProgress([]);
 
-    // Save to recent analyses
+    // Save preferences
     try {
       const recent = JSON.parse(localStorage.getItem('actuaryai_recent') || '[]');
       const updated = [concern, ...recent.filter((r: string) => r !== concern)].slice(0, 10);
       localStorage.setItem('actuaryai_recent', JSON.stringify(updated));
+      localStorage.setItem('actuaryai_budget', String(budget));
+      localStorage.setItem('actuaryai_positions', String(maxPositions));
       setRecentAnalyses(updated);
     } catch {}
 
     try {
       await generateHedgeStream(
-        { concern, budget, num_markets: 500 },
+        { concern, budget, num_markets: 500, max_per_bundle: maxPositions } as any,
         (event) => {
           if (event.type === 'progress') {
-            console.log('[ChatInterface] Progress:', event.data.message);
             setProgress(prev => [...prev, event.data.message]);
           } else if (event.type === 'search_complete') {
             setProgress(prev => [...prev, `Found ${event.data.markets_found} markets`]);
@@ -51,7 +56,6 @@ export function ChatInterface() {
           } else if (event.type === 'bundles_complete') {
             setProgress(prev => [...prev, `Created ${event.data.num_bundles} strategy bundles`]);
           } else if (event.type === 'complete') {
-            console.log('[ChatInterface] Complete event received', event.data);
             if (typeof window !== 'undefined') {
               sessionStorage.setItem('hedgeResults', JSON.stringify(event.data));
               sessionStorage.setItem('hedgeConcern', concern);
@@ -59,7 +63,6 @@ export function ChatInterface() {
               window.location.href = '/results';
             }
           } else if (event.type === 'error') {
-            console.error('[ChatInterface] Error event:', event.data);
             alert(`Error: ${event.data.message}`);
             setIsLoading(false);
           }
@@ -81,25 +84,11 @@ export function ChatInterface() {
   ];
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-16">
-      {/* Header */}
-      <div className="text-center mb-14">
-        <div className="inline-flex items-center gap-2 mb-4">
-          <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-xs font-mono text-zinc-500 uppercase tracking-widest">System Online</span>
-        </div>
-        <h1 className="text-5xl font-bold tracking-tight text-zinc-50 mb-3">
-          Actuary<span className="text-emerald-400">AI</span>
-        </h1>
-        <p className="text-zinc-500 font-mono text-sm">
-          Real-world risk modeling. Powered by prediction markets.
-        </p>
-      </div>
-
+    <div className="max-w-3xl mx-auto px-4 py-12">
       {/* Form */}
       <div className="border border-zinc-800 rounded-lg bg-zinc-900/50 p-6">
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Concern Input */}
+          {/* Concern */}
           <div>
             <label className="block text-xs font-mono text-zinc-400 mb-2 uppercase tracking-wider">
               Risk Description
@@ -113,22 +102,44 @@ export function ChatInterface() {
             />
           </div>
 
-          {/* Budget Input */}
-          <div>
-            <label className="block text-xs font-mono text-zinc-400 mb-2 uppercase tracking-wider">
-              Hedge Budget
-            </label>
-            <div className="relative">
-              <DollarSign className="absolute left-3 top-3 h-4 w-4 text-zinc-600" />
-              <input
-                type="number"
-                value={budget}
-                onChange={(e) => setBudget(Number(e.target.value))}
-                min={10}
-                step={10}
-                className="w-full pl-9 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 font-mono text-sm focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-colors"
-                disabled={isLoading}
-              />
+          {/* Budget + Positions Row */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-mono text-zinc-400 mb-2 uppercase tracking-wider">
+                Hedge Budget
+              </label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-3 h-4 w-4 text-zinc-600" />
+                <input
+                  type="number"
+                  value={budget}
+                  onChange={(e) => setBudget(Number(e.target.value))}
+                  min={10}
+                  step={10}
+                  className="w-full pl-9 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 font-mono text-sm focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-colors"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-mono text-zinc-400 mb-2 uppercase tracking-wider">
+                Max Positions
+              </label>
+              <div className="relative">
+                <select
+                  value={maxPositions}
+                  onChange={(e) => setMaxPositions(Number(e.target.value))}
+                  className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 font-mono text-sm focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-colors appearance-none"
+                  disabled={isLoading}
+                >
+                  <option value={3}>3 positions</option>
+                  <option value={5}>5 positions</option>
+                  <option value={8}>8 positions (recommended)</option>
+                  <option value={10}>10 positions</option>
+                  <option value={15}>15 positions</option>
+                  <option value={20}>20 positions</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -142,7 +153,7 @@ export function ChatInterface() {
                 type="url"
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
-                placeholder="Paste a URL for context (e.g. news article)..."
+                placeholder="Paste a news article URL for extra context..."
                 className="flex-1 px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-600 font-mono text-sm focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-colors"
                 disabled={isLoading}
                 onKeyDown={(e) => {
@@ -181,33 +192,24 @@ export function ChatInterface() {
             )}
           </div>
 
-          {/* Example Concerns */}
+          {/* Examples */}
           <div className="flex flex-wrap gap-2">
             {exampleConcerns.map((ex, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setConcern(ex)}
-                className="px-3 py-1 text-xs font-mono text-zinc-500 border border-zinc-800 rounded-md hover:border-zinc-600 hover:text-zinc-300 transition-colors"
-                disabled={isLoading}
-              >
+              <button key={i} type="button" onClick={() => setConcern(ex)} disabled={isLoading}
+                className="px-3 py-1 text-xs font-mono text-zinc-500 border border-zinc-800 rounded-md hover:border-zinc-600 hover:text-zinc-300 transition-colors">
                 {ex}
               </button>
             ))}
           </div>
 
-          {/* Recent Analyses */}
+          {/* Recent */}
           {recentAnalyses.length > 0 && !isLoading && (
             <div>
               <label className="block text-[10px] font-mono text-zinc-600 mb-1.5 uppercase tracking-wider">Recent</label>
               <div className="flex flex-wrap gap-2">
                 {recentAnalyses.slice(0, 5).map((r, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setConcern(r)}
-                    className="px-3 py-1 text-xs font-mono text-zinc-600 border border-zinc-800/50 rounded-md hover:border-zinc-700 hover:text-zinc-400 transition-colors truncate max-w-[200px]"
-                  >
+                  <button key={i} type="button" onClick={() => setConcern(r)}
+                    className="px-3 py-1 text-xs font-mono text-zinc-600 border border-zinc-800/50 rounded-md hover:border-zinc-700 hover:text-zinc-400 transition-colors truncate max-w-[200px]">
                     {r}
                   </button>
                 ))}
